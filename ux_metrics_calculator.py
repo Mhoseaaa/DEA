@@ -949,112 +949,506 @@ def run_materi_8():
             print("Pilihan tidak valid!")
 
 # ==============================================================================
-#                    MATERI 9: SAMPLE SIZE & T-SCORE
+#                    MATERI 9: SAMPLE SIZE
 # ==============================================================================
 
 def materi_9_menu():
-    print_header("MATERI 9: SAMPLE SIZE & T-SCORE", "09_Sample_Size.pdf, 09_t-score.pdf")
+    print_header("MATERI 9: SAMPLE SIZE", "09_Sample_Size.pdf")
     print("""
-SUMMATIVE SAMPLE SIZE:
-  1. Sample Size for Proportion (Z-score)
-  2. Sample Size for Mean (Z-score)
-  3. Sample Size for Mean (T-score)
+SUMMATIVE Sample Size:
+  1. Estimating Values (n = t²s²/d²)
+  2. No Estimate of Variability (Effect Size)
+  3. Comparing Values (Benchmark)
+  4. Within-subjects Comparison
+  5. Between-subjects Comparison
 
-FORMATIVE SAMPLE SIZE:
-  4. Problem Discovery Sample Size
-
-CONFIDENCE INTERVALS:
-  5. CI for Proportion (Z-score)
-  6. CI for Mean (T-score)
-  7. T-score Calculator
+FORMATIVE Sample Size:
+  6. Problem Discovery
 
   0. Kembali
 """)
     return input("Pilihan: ")
 
-def sample_size_proportion_z():
-    print_header("Sample Size for Proportion (Z-score)", "Materi 9")
-    print_formula("n = (Z² × p × (1-p)) / E²", "Sample Size PDF")
-    z = float(input("Z-score (1.96 untuk 95% CI): ") or 1.96)
-    p = float(input("Expected proportion (0.5 jika tidak diketahui): ") or 0.5)
-    e = float(input("Margin of error (misal 0.05): "))
-    n = (z**2 * p * (1-p)) / (e**2)
-    print(f"\n=== HASIL ===\nSample Size: {math.ceil(n)}")
+# 1. Estimating Values - Hal 7
+def summative_estimating_values():
+    print_header("ESTIMATING VALUES", "Materi 9 - Halaman 7")
+    print_formula("n = t²s² / d²", "7")
+    
+    print("n = sample size")
+    print("s² = variance")
+    print("d = critical difference (error maksimal yang diinginkan)")
+    print("t = tingkat kepercayaan (tergantung df)")
+    print()
+    print("Menggunakan iterasi: z-score → t-score")
+    print()
+    
+    print("Pilih metode input:")
+    print("1. Input variance (s²) langsung")
+    print("2. Input data mentah (variance dihitung otomatis)")
+    method = input("Pilihan (1/2): ")
+    
+    if method == "2":
+        print("\nMasukkan data (pisahkan dengan koma):")
+        print("Contoh: 12, 14, 12, 20, 16")
+        data_str = input("Data: ")
+        data = [float(x.strip()) for x in data_str.split(",")]
+        n_data = len(data)
+        mean = sum(data) / n_data
+        s2 = sum((x - mean)**2 for x in data) / (n_data - 1)
+        s = math.sqrt(s2)
+        
+        print(f"\n--- Data Summary ---")
+        print(f"Data: {data}")
+        print(f"Mean (x̄): {mean}")
+        print(f"Variance (s²): {s2}")
+        print(f"Std Dev (s): {s}")
+    else:
+        s2 = float(input("\nMasukkan variance (s²): "))
+        s = math.sqrt(s2)
+    
+    print("\nCara menentukan d (critical difference):")
+    print("  - Berdasarkan pengalaman")
+    print("  - what-if: misal 10% dari mean")
+    d = float(input("Masukkan critical difference (d): "))
+    
+    conf_input = float(input("Masukkan tingkat kepercayaan (misal 90, 95, 99): "))
+    conf = conf_input / 100 if conf_input > 1 else conf_input
+    
+    # Untuk estimating values (± d), gunakan two-tailed
+    alpha = (1 - conf) / 2
+    
+    # Step 1: Hitung dengan z-score
+    z = stats.norm.ppf(1 - alpha)
+    n_raw_initial = (z**2 * s2) / (d**2)
+    n_initial = max(2, math.ceil(n_raw_initial))  # Minimal n=2 agar df minimal 1
+    
+    print(f"\n{'='*70}")
+    print("HASIL PERHITUNGAN:")
+    print(f"{'='*70}")
+    
+    print(f"\n--- Iterasi ---")
+    print(f"\n{'Iterasi':<10} {'t':<10} {'t²':<10} {'s²':<10} {'d':<10} {'d²':<10} {'df':<10} {'n (raw)':<12} {'n (rounded)':<10}")
+    print("-" * 100)
+    
+    # Initial dengan z-score
+    print(f"{'Initial':<10} {z:<10.4f} {z**2:<10.4f} {s2:<10} {d:<10} {d**2:<10.4f} {'-':<10} {n_raw_initial:<12.1f} {n_initial:<10}")
+    
+    n = n_initial
+    prev_n = 0
+    prev_prev_n = -1  # Untuk deteksi oscillation
+    iteration = 1
+    
+    while n != prev_n and iteration <= 10:
+        # Deteksi oscillation (n berputar antara 2 nilai)
+        if n == prev_prev_n:
+            print(f"\n⚠ Deteksi oscillation antara {prev_n} dan {n}")
+            n = max(prev_n, n)  # Ambil yang lebih besar (lebih konservatif)
+            print(f"→ Menggunakan nilai lebih besar: {n}")
+            break
+        
+        prev_prev_n = prev_n
+        prev_n = n
+        df = n - 1
+        t = stats.t.ppf(1 - alpha, df)
+        n_raw = (t**2 * s2) / (d**2)
+        n = max(2, math.ceil(n_raw))  # Minimal n=2 agar df minimal 1
+        
+        print(f"{iteration:<10} {t:<10.4f} {t**2:<10.4f} {s2:<10} {d:<10} {d**2:<10.4f} {df:<10} {n_raw:<12.1f} {n:<10}")
+        
+        if n == prev_n:
+            break
+        iteration += 1
+    
+    print(f"\n=== KESIMPULAN ===")
+    print(f"→ Dibutuhkan sample size: {n} responden")
 
-def sample_size_mean_z():
-    print_header("Sample Size for Mean (Z-score)", "Materi 9")
-    print_formula("n = (Z × σ / E)²", "Sample Size PDF")
-    z = float(input("Z-score (1.96 untuk 95% CI): ") or 1.96)
-    sigma = float(input("Population std dev (σ): "))
-    e = float(input("Margin of error (E): "))
-    n = (z * sigma / e) ** 2
-    print(f"\n=== HASIL ===\nSample Size: {math.ceil(n)}")
+# 2. No Estimate of Variability - Hal 15
+def summative_no_variability():
+    print_header("NO ESTIMATE OF VARIABILITY", "Materi 9 - Halaman 15-17")
+    print_formula("n = t² / e²", "15")
+    
+    print("Digunakan jika tidak mengetahui recognition variability (variance)")
+    print("dari percobaan sebelumnya.")
+    print()
+    print("Gunakan effect size (e) dari Cohen (1988):")
+    print("  - 0.2 = efek kecil")
+    print("  - 0.5 = efek sedang")
+    print("  - 0.8 = efek besar")
+    print()
+    print("e = d/s (effect size = critical difference / std dev)")
+    print()
+    
+    print("Pilih effect size:")
+    print("1. Kecil (0.2)")
+    print("2. Sedang (0.5)")
+    print("3. Besar (0.8)")
+    print("4. Custom (masukkan nilai)")
+    choice = input("Pilihan (1/2/3/4): ")
+    
+    if choice == "1":
+        e = 0.2
+    elif choice == "2":
+        e = 0.5
+    elif choice == "3":
+        e = 0.8
+    else:
+        e = float(input("Masukkan effect size (misal 0.33): "))
+    
+    conf_input = float(input("Masukkan tingkat kepercayaan (misal 80, 90, 95): "))
+    conf = conf_input / 100 if conf_input > 1 else conf_input
+    
+    # Two-tailed
+    alpha = (1 - conf) / 2
+    
+    # Step 1: z-score
+    z = stats.norm.ppf(1 - alpha)
+    n_raw_initial = z**2 / e**2
+    n_initial = max(2, math.ceil(n_raw_initial))
+    
+    print(f"\n{'='*70}")
+    print("HASIL PERHITUNGAN:")
+    print(f"{'='*70}")
+    
+    print(f"\nEffect size (e) = {e}")
+    print(f"e² = {e**2}")
+    print(f"Confidence = {conf*100}%")
+    print(f"α = {(1-conf):.2f}, α/2 = {alpha:.2f} (two-tailed)")
+    
+    print(f"\n--- Iterasi ---")
+    print(f"\n{'Step':<8} {'Rumus':<50} {'n':<10}")
+    print("-" * 70)
+    
+    # Step 1: z-score
+    print(f"{'1':<8} z-score = {z:.3f}")
+    print(f"{'':8} n = {z:.3f}² / {e}² = {z**2:.4f} / {e**2:.4f} = {n_raw_initial:.1f} → {n_initial}")
+    
+    n = n_initial
+    prev_n = 0
+    prev_prev_n = -1
+    step = 2
+    
+    while n != prev_n and step <= 10:
+        # Deteksi oscillation
+        if n == prev_prev_n:
+            print(f"\n⚠ Deteksi oscillation antara {prev_n} dan {n}")
+            n = max(prev_n, n)
+            print(f"→ Menggunakan nilai lebih besar: {n}")
+            break
+        
+        prev_prev_n = prev_n
+        prev_n = n
+        df = n - 1
+        t = stats.t.ppf(1 - alpha, df)
+        n_raw = t**2 / e**2
+        n = max(2, math.ceil(n_raw))
+        
+        print(f"\n{step:<8} t-score dengan n = {prev_n}, (df={prev_n}-1={df})")
+        print(f"{'':8} → t (two-tailed) = {alpha:.2f} → t({df}) = {t:.3f}")
+        print(f"{'':8} n = {t:.3f}² / {e}² = {t**2:.4f} / {e**2:.4f} = {n_raw:.1f}, dibulatkan n = {n}")
+        
+        if n == prev_n:
+            break
+        step += 1
+    
+    print(f"\n=== KESIMPULAN ===")
+    print(f"→ Dibutuhkan sample size: {n} responden")
 
-def sample_size_mean_t():
-    print_header("Sample Size for Mean (T-score)", "Materi 9")
-    print_formula("n = (t × s / E)² - iterative", "T-score PDF")
-    s = float(input("Sample std dev (s): "))
-    e = float(input("Margin of error (E): "))
-    conf = float(input("Confidence level (0.95): ") or 0.95)
-    n = 10
-    for _ in range(20):
-        t = stats.t.ppf((1+conf)/2, n-1)
-        n_new = math.ceil((t * s / e) ** 2)
-        if n_new == n: break
-        n = n_new
-    print(f"\n=== HASIL ===\nSample Size: {n}\nT-critical: {t:.4f}")
+# 3. Comparing Values (Benchmark) - Hal 19-20
+def summative_comparing_benchmark():
+    print_header("COMPARING VALUES (BENCHMARK)", "Materi 9 - Halaman 19-20")
+    print_formula("n = (t² × s²) / d²", "19")
+    
+    print("Contoh: Product requirement SUS score setidaknya 75")
+    print("        Evaluasi awal: SUS 65, setelah perbaikan akan evaluasi lagi")
+    print()
+    
+    s2 = float(input("Masukkan variance dari percobaan sebelumnya (s²): "))
+    d = float(input("Masukkan critical difference (d) - misal 1 point: "))
+    conf_input = float(input("Masukkan tingkat kepercayaan (misal 90, 95): "))
+    conf = conf_input / 100 if conf_input > 1 else conf_input
+    
+    # One-tailed untuk benchmark
+    alpha = 1 - conf
+    
+    # Step 1: z-score
+    z = stats.norm.ppf(1 - alpha)
+    n_initial = math.ceil((z**2 * s2) / (d**2))
+    
+    print(f"\n{'='*70}")
+    print("HASIL PERHITUNGAN:")
+    print(f"{'='*70}")
+    
+    print(f"\nVariance (s²) = {s2}")
+    print(f"Critical difference (d) = {d}")
+    print(f"Confidence = {conf*100}%")
+    print(f"α = {alpha} (one-tailed)")
+    
+    print(f"\n--- Iterasi ---")
+    print(f"\nStep 1: z-score dengan {conf*100}% confidence = {z:.4f}")
+    print(f"        n = ({z:.4f}² × {s2}) / {d}² = {(z**2 * s2)/(d**2):.1f}, dibulatkan n = {n_initial}")
+    
+    n = n_initial
+    prev_n = 0
+    step = 2
+    
+    while n != prev_n and step <= 10:
+        prev_n = n
+        df = n - 1
+        t = stats.t.ppf(1 - alpha, df)
+        n_raw = (t**2 * s2) / (d**2)
+        n = math.ceil(n_raw)
+        
+        print(f"\nStep {step}: t-score dengan n = {prev_n}, (df={df})")
+        print(f"        → t (one-tailed) = {alpha} → t({df}) = {t:.4f}")
+        print(f"        n = ({t:.4f}² × {s2}) / {d}² = {n_raw:.1f}, dibulatkan n = {n}")
+        
+        if n == prev_n:
+            break
+        step += 1
+    
+    print(f"\n=== KESIMPULAN ===")
+    print(f"→ Dibutuhkan sample size: {n} responden")
 
-def problem_discovery_sample():
-    print_header("Problem Discovery Sample Size", "Materi 9")
-    print_formula("n = log(1-P) / log(1-p)", "Formative")
-    P = float(input("Target discovery rate (0.85 untuk 85%): ") or 0.85)
-    p = float(input("Probability per user (0.31 adalah rata-rata): ") or 0.31)
-    n = math.log(1 - P) / math.log(1 - p)
-    print(f"\n=== HASIL ===\nSample Size: {math.ceil(n)} users")
+# 4. Within-subjects Comparison - Hal 21-22
+def summative_within_subjects():
+    print_header("WITHIN-SUBJECTS COMPARISON", "Materi 9 - Halaman 21-22")
+    print_formula("n = t²s² / d²", "21")
+    
+    print("Gunakan paired t-test (difference scores t-test)")
+    print("Two-tailed test")
+    print()
+    print("Contoh: Membandingkan produk Anda dengan produk saingan")
+    print()
+    
+    s2 = float(input("Masukkan variance dari percobaan sebelumnya (s²): "))
+    d = float(input("Masukkan critical difference (d): "))
+    conf_input = float(input("Masukkan tingkat kepercayaan (misal 99): "))
+    conf = conf_input / 100 if conf_input > 1 else conf_input
+    
+    # Two-tailed
+    alpha = (1 - conf) / 2
+    
+    # Initial dengan z-score
+    z = stats.norm.ppf(1 - alpha)
+    s = math.sqrt(s2)
+    n_initial = math.ceil((z**2 * s2) / (d**2))
+    
+    print(f"\n{'='*70}")
+    print("HASIL PERHITUNGAN:")
+    print(f"{'='*70}")
+    
+    print(f"\ns² = {s2}, s = {s:.4f}")
+    print(f"d = {d}, d² = {d**2}")
+    
+    print(f"\n--- Tabel Iterasi ---")
+    print(f"\n{'':>10} {'Initial':>10} ", end="")
+    
+    # Iterasi
+    n = n_initial
+    iterations = [('Initial', z, z**2, s2, d, d**2, '-', (z**2*s2)/(d**2), n_initial)]
+    
+    prev_n = 0
+    iter_num = 1
+    while n != prev_n and iter_num <= 5:
+        prev_n = n
+        df = n - 1
+        t = stats.t.ppf(1 - alpha, df)
+        n_raw = (t**2 * s2) / (d**2)
+        n = math.ceil(n_raw)
+        iterations.append((str(iter_num), t, t**2, s2, d, d**2, df, n_raw, n))
+        print(f"{iter_num:>10} ", end="")
+        if n == prev_n:
+            break
+        iter_num += 1
+    
+    print()
+    print("-" * (10 + 11 * len(iterations)))
+    
+    # Print rows
+    row_labels = ['t', 't²', 's²', 'd', 'd²', 'df', 'Unrounded', 'Rounded up']
+    for i, label in enumerate(row_labels):
+        print(f"{label:>10} ", end="")
+        for it in iterations:
+            if i == 0:
+                print(f"{it[1]:>10.4f} ", end="")
+            elif i == 1:
+                print(f"{it[2]:>10.4f} ", end="")
+            elif i == 2:
+                print(f"{it[3]:>10} ", end="")
+            elif i == 3:
+                print(f"{it[4]:>10} ", end="")
+            elif i == 4:
+                print(f"{it[5]:>10.4f} ", end="")
+            elif i == 5:
+                print(f"{str(it[6]):>10} ", end="")
+            elif i == 6:
+                print(f"{it[7]:>10.1f} ", end="")
+            elif i == 7:
+                print(f"{it[8]:>10} ", end="")
+        print()
+    
+    print(f"\n=== KESIMPULAN ===")
+    print(f"→ Dibutuhkan sample size: {n} responden")
 
-def ci_proportion_z():
-    print_header("CI for Proportion (Z-score)", "Materi 9")
-    print_formula("CI = p̂ ± Z × √(p̂(1-p̂)/n)", "Sample Size PDF")
-    x = int(input("Successes: "))
-    n = int(input("Total (n): "))
-    z = float(input("Z-score (1.96): ") or 1.96)
-    p = x/n
-    se = math.sqrt(p*(1-p)/n)
-    print(f"\n=== HASIL ===\nProportion: {p:.4f}\n95% CI: [{max(0,p-z*se):.4f}, {min(1,p+z*se):.4f}]")
+# 5. Between-subjects Comparison - Hal 23-24
+def summative_between_subjects():
+    print_header("BETWEEN-SUBJECTS COMPARISON", "Materi 9 - Halaman 23-24")
+    print_formula("n = 2z²s² / d²", "23")
+    
+    print("Lebih kompleks, jumlah sampel tiap kelompok bisa berbeda")
+    print("Two-tailed test")
+    print("Asumsi: kedua kelompok memiliki performance variability yang sama")
+    print()
+    
+    s2 = float(input("Masukkan variance dari percobaan sebelumnya (s²): "))
+    d = float(input("Masukkan critical difference (d): "))
+    conf_input = float(input("Masukkan tingkat kepercayaan (misal 99): "))
+    conf = conf_input / 100 if conf_input > 1 else conf_input
+    
+    # Two-tailed
+    alpha = (1 - conf) / 2
+    
+    # Initial dengan z-score (rumus n = 2z²s²/d²)
+    z = stats.norm.ppf(1 - alpha)
+    n_initial = math.ceil((2 * z**2 * s2) / (d**2))
+    
+    print(f"\n{'='*70}")
+    print("HASIL PERHITUNGAN:")
+    print(f"{'='*70}")
+    
+    print(f"\ns² = {s2}")
+    print(f"d = {d}, d² = {d**2}")
+    
+    print(f"\n--- Tabel Iterasi ---")
+    
+    # Iterasi
+    n = n_initial
+    iterations = [('Initial', z, z**2, s2, d, d**2, 2*n_initial - 2, (2*z**2*s2)/(d**2), n_initial)]
+    
+    prev_n = 0
+    iter_num = 1
+    while n != prev_n and iter_num <= 5:
+        prev_n = n
+        df = 2 * n - 2  # df untuk between-subjects
+        t = stats.t.ppf(1 - alpha, df)
+        n_raw = (2 * t**2 * s2) / (d**2)
+        n = math.ceil(n_raw)
+        iterations.append((str(iter_num), t, t**2, s2, d, d**2, df, n_raw, n))
+        if n == prev_n:
+            break
+        iter_num += 1
+    
+    # Print header
+    print(f"\n{'':>12}", end="")
+    for it in iterations:
+        print(f"{it[0]:>12}", end="")
+    print()
+    print("-" * (12 + 12 * len(iterations)))
+    
+    # Print rows
+    row_labels = ['t', 't²', 's²', 'd', 'd²', 'df', 'Unrounded', 'Rounded up']
+    for i, label in enumerate(row_labels):
+        print(f"{label:>12}", end="")
+        for it in iterations:
+            if i == 0:
+                print(f"{it[1]:>12.4f}", end="")
+            elif i == 1:
+                print(f"{it[2]:>12.4f}", end="")
+            elif i == 2:
+                print(f"{it[3]:>12}", end="")
+            elif i == 3:
+                print(f"{it[4]:>12}", end="")
+            elif i == 4:
+                print(f"{it[5]:>12.4f}", end="")
+            elif i == 5:
+                print(f"{it[6]:>12}", end="")
+            elif i == 6:
+                print(f"{it[7]:>12.1f}", end="")
+            elif i == 7:
+                print(f"{it[8]:>12}", end="")
+        print()
+    
+    print(f"\n=== KESIMPULAN ===")
+    print(f"→ Dibutuhkan {n} responden untuk setiap group")
+    print(f"→ Total dibutuhkan {n * 2} responden")
 
-def ci_mean_t():
-    print_header("CI for Mean (T-score)", "Materi 9")
-    print_formula("CI = X̄ ± t × (s/√n)", "T-score PDF")
-    print("Data (pisah koma):")
-    data = [float(x.strip()) for x in input().split(",")]
-    n = len(data)
-    mean = sum(data)/n
-    s = math.sqrt(sum((x-mean)**2 for x in data)/(n-1))
-    t = stats.t.ppf(0.975, n-1)
-    se = s/math.sqrt(n)
-    print(f"\n=== HASIL ===\nMean: {mean:.4f}\nStd Dev: {s:.4f}\n95% CI: [{mean-t*se:.4f}, {mean+t*se:.4f}]")
-
-def t_score_calculator():
-    print_header("T-score Calculator", "Materi 9")
-    print_formula("t = (X̄ - μ) / (s/√n)", "T-score PDF")
-    mean = float(input("Sample mean (X̄): "))
-    mu = float(input("Hypothesized mean (μ): "))
-    s = float(input("Sample std dev (s): "))
-    n = int(input("Sample size (n): "))
-    t = (mean - mu) / (s / math.sqrt(n))
-    df = n - 1
-    p = 2 * (1 - stats.t.cdf(abs(t), df))
-    print(f"\n=== HASIL ===\nT-score: {t:.4f}\ndf: {df}\nP-value: {p:.4f}")
+# 6. Formative - Problem Discovery - Hal 25-29
+def formative_problem_discovery():
+    print_header("FORMATIVE SAMPLE SIZE - PROBLEM DISCOVERY", "Materi 9 - Halaman 25-29")
+    print_formula("P(x≥1) = 1 - (1-p)ⁿ", "25")
+    print_formula("n = ln(1-P(x≥1)) / ln(1-p)", "27")
+    
+    print("p = probabilitas suatu event terjadi")
+    print("n = banyaknya kesempatan event terjadi")
+    print("P(x≥1) = probabilitas suatu event terjadi minimal sekali dalam n kesempatan")
+    print()
+    print("Contoh: Berapa responden untuk menemukan error dengan:")
+    print("        80% kemungkinan menemukan setidaknya 1 error")
+    print("        15% probabilitas terjadi error")
+    print()
+    
+    print("Pilih mode:")
+    print("1. Hitung Sample Size (n) dari P dan p")
+    print("2. Hitung Probability P(x≥1) dari p dan n")
+    mode = input("Pilihan (1/2): ")
+    
+    if mode == "2":
+        p_input = float(input("\nMasukkan probabilitas event (p), misal 0.15 atau 15: "))
+        p = p_input / 100 if p_input > 1 else p_input
+        n = int(input("Masukkan sample size (n): "))
+        
+        P = 1 - (1 - p)**n
+        
+        print(f"\n{'='*70}")
+        print("HASIL PERHITUNGAN:")
+        print(f"{'='*70}")
+        print(f"\nP(x≥1) = 1 - (1-p)ⁿ")
+        print(f"P(x≥1) = 1 - (1-{p})^{n}")
+        print(f"P(x≥1) = 1 - {(1-p)**n}")
+        print(f"P(x≥1) = {P}")
+        
+        print(f"\n=== KESIMPULAN ===")
+        print(f"→ Dengan {n} user dan probabilitas {p*100}%,")
+        print(f"  kemungkinan menemukan minimal 1 event adalah {P*100:.1f}%")
+    else:
+        P_input = float(input("\nMasukkan target probability P(x≥1), misal 0.80 atau 80: "))
+        P = P_input / 100 if P_input > 1 else P_input
+        p_input = float(input("Masukkan probabilitas event (p), misal 0.15 atau 15: "))
+        p = p_input / 100 if p_input > 1 else p_input
+        
+        n = math.log(1 - P) / math.log(1 - p)
+        
+        print(f"\n{'='*70}")
+        print("HASIL PERHITUNGAN:")
+        print(f"{'='*70}")
+        print(f"\nn = ln(1-P) / ln(1-p)")
+        print(f"n = ln(1-{P}) / ln(1-{p})")
+        print(f"n = ln({1-P}) / ln({1-p})")
+        print(f"n = {math.log(1-P)} / {math.log(1-p)}")
+        print(f"n = {n}")
+        
+        print(f"\n=== KESIMPULAN ===")
+        print(f"→ Dibutuhkan {math.ceil(n)} user untuk {P*100}% kemungkinan")
+        print(f"  menemukan minimal 1 event dengan probabilitas {p*100}%")
 
 def run_materi_9():
-    opts = {"1": sample_size_proportion_z, "2": sample_size_mean_z, "3": sample_size_mean_t,
-            "4": problem_discovery_sample, "5": ci_proportion_z, "6": ci_mean_t, "7": t_score_calculator}
+    opts = {
+        "1": summative_estimating_values,
+        "2": summative_no_variability,
+        "3": summative_comparing_benchmark,
+        "4": summative_within_subjects,
+        "5": summative_between_subjects,
+        "6": formative_problem_discovery
+    }
     while True:
         c = materi_9_menu()
-        if c == "0": break
+        if c == "0":
+            break
         if c in opts:
-            try: opts[c]()
-            except Exception as e: print(f"Error: {e}")
+            try:
+                opts[c]()
+            except Exception as e:
+                print(f"Error: {e}")
             input("\n[Enter untuk lanjut...]")
 
 # ==============================================================================
