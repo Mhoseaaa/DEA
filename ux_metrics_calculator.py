@@ -1482,50 +1482,100 @@ def run_materi_9():
 def materi_10_menu():
     print_header("MATERI 10: PERFORMANCE BASED METRICS", "10_Performance_Based_Metrics.pdf")
     print("""
-  1. Task Success Rate + CI
-  2. Task Time (Geometric Mean)
-  3. Error Rate
-  4. Efficiency
-  5. Lostness
+  1. Efficiency
+  2. Lostness
 
   0. Kembali
 """)
     return input("Pilihan: ")
 
-def task_success_ci():
-    print_header("Task Success Rate + CI", "Materi 10")
-    print_formula("Success Rate = x/n, CI menggunakan adjusted Wald", "Performance PDF")
-    x = int(input("Successful tasks: "))
-    n = int(input("Total tasks: "))
-    p = x/n
-    z = 1.96
-    n_adj = n + z**2
-    p_adj = (x + z**2/2) / n_adj
-    se = math.sqrt(p_adj*(1-p_adj)/n_adj)
-    print(f"\n=== HASIL ===\nSuccess Rate: {p*100:.1f}%\n95% CI: [{max(0,(p_adj-z*se)*100):.1f}%, {min(100,(p_adj+z*se)*100):.1f}%]")
-
-def geometric_mean_time():
-    print_header("Task Time (Geometric Mean)", "Materi 10")
-    print_formula("GM = exp(Σlog(xi)/n)", "Performance PDF")
-    print("Task times (detik, pisah koma):")
-    times = [float(x.strip()) for x in input().split(",")]
-    gm = math.exp(sum(math.log(t) for t in times) / len(times))
-    am = sum(times)/len(times)
-    print(f"\n=== HASIL ===\nArithmetic Mean: {am:.2f}s\nGeometric Mean: {gm:.2f}s")
-
-def error_rate_calc():
-    print_header("Error Rate", "Materi 10")
-    print_formula("Error Rate = errors / opportunities", "Performance PDF")
-    e = int(input("Total errors: "))
-    o = int(input("Total opportunities: "))
-    print(f"\n=== HASIL ===\nError Rate: {e/o:.4f} ({e/o*100:.2f}%)")
-
 def efficiency_calc():
     print_header("Efficiency", "Materi 10")
-    print_formula("Efficiency = Success / Time", "Performance PDF")
-    s = float(input("Success rate (0-1): "))
-    t = float(input("Avg time (seconds): "))
-    print(f"\n=== HASIL ===\nEfficiency: {s/t:.4f}")
+    print("""
+Pilih metode perhitungan Efficiency:
+  1. Efficiency = Completion Rate / Average Task Time
+  2. Efficiency = Number of Successful Tasks / Total Time on All Tasks
+""")
+    method = input("Pilihan (1/2): ")
+    
+    if method == "1":
+        print_formula("Efficiency = Completion Rate / Average Task Time", "Performance PDF")
+        print("\n--- Input Data ---")
+        print("Pilih cara input Completion Rate:")
+        print("  1. Input persentase langsung (misal: 80 atau 80%)")
+        print("  2. Hitung dari jumlah task berhasil dan total task")
+        cr_method = input("Pilihan (1/2): ")
+        
+        if cr_method == "1":
+            cr_input = input("Masukkan Completion Rate (%): ").replace(",", ".").replace("%", "").strip()
+            completion_rate_pct = float(cr_input)
+            # Jika input > 1, anggap sebagai persentase
+            if completion_rate_pct > 1:
+                completion_rate = completion_rate_pct / 100
+            else:
+                completion_rate = completion_rate_pct
+            cr_display = f"{completion_rate*100:.1f}%"
+        else:
+            successful = int(input("Jumlah task berhasil: "))
+            total_tasks = int(input("Total task: "))
+            completion_rate = successful / total_tasks
+            cr_display = f"{successful}/{total_tasks} = {completion_rate:.4f} ({completion_rate*100:.1f}%)"
+        
+        # Ganti koma dengan titik untuk mendukung format desimal Indonesia
+        avg_time_input = input("Rata-rata waktu per task (detik): ").replace(",", ".")
+        avg_time = float(avg_time_input)
+        
+        efficiency = completion_rate / avg_time
+        
+        print(f"\n{'='*50}")
+        print("HASIL PERHITUNGAN:")
+        print(f"{'='*50}")
+        print(f"\nCompletion Rate = {cr_display}")
+        print(f"Average Task Time = {avg_time} detik")
+        print(f"\nEfficiency = Completion Rate / Average Task Time")
+        print(f"Efficiency = {completion_rate:.4f} / {avg_time}")
+        print(f"Efficiency = {efficiency:.6f}")
+        print(f"\n=== KESIMPULAN ===")
+        print(f"→ Efficiency: {efficiency:.6f} (semakin tinggi semakin efisien)")
+        
+    else:
+        print_formula("Efficiency = Number of Successful Tasks / Total Time on All Tasks", "Performance PDF")
+        print("\n--- Input Data ---")
+        print("Pilih metode input waktu:")
+        print("  1. Input waktu per task (pisahkan dengan spasi)")
+        print("  2. Input total waktu langsung")
+        time_method = input("Pilihan (1/2): ")
+        
+        successful = int(input("Jumlah task berhasil: "))
+        
+        if time_method == "1":
+            print("Masukkan waktu setiap task (detik, pisahkan dengan spasi):")
+            print("Contoh: 10.5 20 15.3 atau 10,5 20 15,3")
+            times_input = input()
+            # Ganti koma dengan titik untuk mendukung format desimal Indonesia
+            times_input = times_input.replace(",", ".")
+            # Split by spaces
+            times = [float(x.strip()) for x in times_input.split()]
+            total_time = sum(times)
+            print(f"\nTotal waktu = {' + '.join(map(str, times))} = {total_time} detik")
+        else:
+            # Ganti koma dengan titik untuk mendukung format desimal Indonesia
+            total_time_input = input("Total waktu semua task (detik): ").replace(",", ".")
+            total_time = float(total_time_input)
+        
+        efficiency = successful / total_time
+        
+        print(f"\n{'='*50}")
+        print("HASIL PERHITUNGAN:")
+        print(f"{'='*50}")
+        print(f"\nNumber of Successful Tasks = {successful}")
+        print(f"Total Time on All Tasks = {total_time} detik")
+        print(f"\nEfficiency = Successful Tasks / Total Time")
+        print(f"Efficiency = {successful} / {total_time}")
+        print(f"Efficiency = {efficiency:.6f}")
+        print(f"\n=== KESIMPULAN ===")
+        print(f"→ Efficiency: {efficiency:.6f} tasks/detik")
+        print(f"→ Atau: {efficiency*60:.4f} tasks/menit")
 
 def lostness_calc():
     print_header("Lostness", "Materi 10")
@@ -1537,7 +1587,7 @@ def lostness_calc():
     print(f"\n=== HASIL ===\nLostness: {L:.4f}\nInterpretasi: {'Baik' if L < 0.4 else 'Sedang' if L < 0.5 else 'Buruk'}")
 
 def run_materi_10():
-    opts = {"1": task_success_ci, "2": geometric_mean_time, "3": error_rate_calc, "4": efficiency_calc, "5": lostness_calc}
+    opts = {"1": efficiency_calc, "2": lostness_calc}
     while True:
         c = materi_10_menu()
         if c == "0": break
