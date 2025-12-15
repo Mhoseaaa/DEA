@@ -1158,12 +1158,17 @@ def summative_comparing_benchmark():
     print_header("COMPARING VALUES (BENCHMARK)", "Materi 9 - Halaman 19-20")
     print_formula("n = (t² × s²) / d²", "19")
     
-    print("Contoh: Product requirement SUS score setidaknya 75")
-    print("        Evaluasi awal: SUS 65, setelah perbaikan akan evaluasi lagi")
+    print("CONTOH: Product requirement score mewajibkan hasil SUS")
+    print("score setidaknya 75. Dalam evaluasi awal, diperoleh")
+    print("SUS score 65. Setelah melakukan beberapa perbaikan, akan")
+    print("dilakukan evaluasi kembali.")
+    print("  • Variability dari percobaan sebelumnya : 5 (s=2.234)")
+    print("  • Critical difference (d) = 1 point (SUS score >= 76)")
+    print("  • Tingkat kepercayaan yang diharapkan 90%")
     print()
     
     s2 = float(input("Masukkan variance dari percobaan sebelumnya (s²): "))
-    d = float(input("Masukkan critical difference (d) - misal 1 point: "))
+    d = float(input("Masukkan critical difference (d): "))
     conf_input = float(input("Masukkan tingkat kepercayaan (misal 90, 95): "))
     conf = conf_input / 100 if conf_input > 1 else conf_input
     
@@ -1171,36 +1176,42 @@ def summative_comparing_benchmark():
     alpha = 1 - conf
     
     # Step 1: z-score
-    z = stats.norm.ppf(1 - alpha)
-    n_initial = math.ceil((z**2 * s2) / (d**2))
+    z = stats.norm.ppf(conf)  # Untuk one-tailed, langsung pakai conf
+    n_raw_initial = (z**2 * s2) / (d**2)
+    n_initial = max(2, math.ceil(n_raw_initial))
     
     print(f"\n{'='*70}")
-    print("HASIL PERHITUNGAN:")
+    print("JAWAB:")
     print(f"{'='*70}")
     
-    print(f"\nVariance (s²) = {s2}")
-    print(f"Critical difference (d) = {d}")
-    print(f"Confidence = {conf*100}%")
-    print(f"α = {alpha} (one-tailed)")
-    
-    print(f"\n--- Iterasi ---")
-    print(f"\nStep 1: z-score dengan {conf*100}% confidence = {z:.4f}")
-    print(f"        n = ({z:.4f}² × {s2}) / {d}² = {(z**2 * s2)/(d**2):.1f}, dibulatkan n = {n_initial}")
+    print(f"\n1. variance (S²) = {s2}")
+    print(f"   z-score dengan {conf*100:.0f}% confidence = {z:.3f}")
+    print(f"   → α = {alpha:.2f} → z : {conf:.2f}")
+    print(f"   n = ({z:.3f}² x {int(s2)}) / {int(d)}² = {n_raw_initial:.1f} , dibulatkan n = {n_initial}")
     
     n = n_initial
     prev_n = 0
+    prev_prev_n = -1
     step = 2
     
     while n != prev_n and step <= 10:
+        # Deteksi oscillation
+        if n == prev_prev_n:
+            print(f"\n⚠ Deteksi oscillation antara {prev_n} dan {n}")
+            n = max(prev_n, n)
+            print(f"→ Menggunakan nilai lebih besar: {n}")
+            break
+        
+        prev_prev_n = prev_n
         prev_n = n
         df = n - 1
-        t = stats.t.ppf(1 - alpha, df)
+        t = stats.t.ppf(conf, df)  # Untuk one-tailed, langsung pakai conf
         n_raw = (t**2 * s2) / (d**2)
-        n = math.ceil(n_raw)
+        n = max(2, math.ceil(n_raw))
         
-        print(f"\nStep {step}: t-score dengan n = {prev_n}, (df={df})")
-        print(f"        → t (one-tailed) = {alpha} → t({df}) = {t:.4f}")
-        print(f"        n = ({t:.4f}² × {s2}) / {d}² = {n_raw:.1f}, dibulatkan n = {n}")
+        print(f"\n{step}. t-score dengan n = {prev_n}, (df={prev_n}-1={df})")
+        print(f"   → t (one-tailed) = {alpha:.2f} → t({df}) = {t:.3f}")
+        print(f"   n = ({t:.3f}² x {int(s2)}) / {int(d)}² = {n_raw:.1f} , dibulatkan n = {n}")
         
         if n == prev_n:
             break
@@ -1293,11 +1304,12 @@ def summative_within_subjects():
 # 5. Between-subjects Comparison - Hal 23-24
 def summative_between_subjects():
     print_header("BETWEEN-SUBJECTS COMPARISON", "Materi 9 - Halaman 23-24")
-    print_formula("n = 2z²s² / d²", "23")
+    print_formula("n = 2t²s² / d²", "23")
     
     print("Lebih kompleks, jumlah sampel tiap kelompok bisa berbeda")
     print("Two-tailed test")
     print("Asumsi: kedua kelompok memiliki performance variability yang sama")
+    print("        → peserta dari populasi yang sama dan random assignment")
     print()
     
     s2 = float(input("Masukkan variance dari percobaan sebelumnya (s²): "))
@@ -1310,7 +1322,9 @@ def summative_between_subjects():
     
     # Initial dengan z-score (rumus n = 2z²s²/d²)
     z = stats.norm.ppf(1 - alpha)
-    n_initial = math.ceil((2 * z**2 * s2) / (d**2))
+    n_raw_initial = (2 * z**2 * s2) / (d**2)
+    n_initial = max(2, math.ceil(n_raw_initial))
+    df_initial = n_initial - 1  # df = n - 1
     
     print(f"\n{'='*70}")
     print("HASIL PERHITUNGAN:")
@@ -1318,28 +1332,40 @@ def summative_between_subjects():
     
     print(f"\ns² = {s2}")
     print(f"d = {d}, d² = {d**2}")
+    print(f"Confidence = {conf*100}%, α/2 = {alpha}")
     
-    print(f"\n--- Tabel Iterasi ---")
+    # Iterasi dan simpan semua hasil
+    # Format: (label, t, t², s², d, d², df, n_raw, n_rounded)
+    iterations = [('Initial', z, z**2, s2, d, d**2, df_initial, n_raw_initial, n_initial)]
     
-    # Iterasi
     n = n_initial
-    iterations = [('Initial', z, z**2, s2, d, d**2, 2*n_initial - 2, (2*z**2*s2)/(d**2), n_initial)]
-    
     prev_n = 0
+    prev_prev_n = -1
     iter_num = 1
+    
     while n != prev_n and iter_num <= 5:
+        # Deteksi oscillation
+        if n == prev_prev_n and iter_num > 1:
+            n = max(prev_n, n)
+            break
+        
+        prev_prev_n = prev_n
         prev_n = n
-        df = 2 * n - 2  # df untuk between-subjects
+        df = n - 1  # df = n - 1 untuk iterasi (sesuai slide)
         t = stats.t.ppf(1 - alpha, df)
         n_raw = (2 * t**2 * s2) / (d**2)
-        n = math.ceil(n_raw)
-        iterations.append((str(iter_num), t, t**2, s2, d, d**2, df, n_raw, n))
+        n = max(2, math.ceil(n_raw))
+        df_result = n - 1  # df hasil dari n baru
+        iterations.append((str(iter_num), t, t**2, s2, d, d**2, df_result, n_raw, n))
         if n == prev_n:
             break
         iter_num += 1
     
-    # Print header
-    print(f"\n{'':>12}", end="")
+    # Print tabel seperti di slide
+    print(f"\n--- Between-subjects Comparison of an Alternative ---\n")
+    
+    # Header
+    print(f"{'':>12}", end="")
     for it in iterations:
         print(f"{it[0]:>12}", end="")
     print()
@@ -1351,15 +1377,15 @@ def summative_between_subjects():
         print(f"{label:>12}", end="")
         for it in iterations:
             if i == 0:
-                print(f"{it[1]:>12.4f}", end="")
+                print(f"{it[1]:>12.3f}", end="")
             elif i == 1:
-                print(f"{it[2]:>12.4f}", end="")
+                print(f"{it[2]:>12.2f}", end="")
             elif i == 2:
-                print(f"{it[3]:>12}", end="")
+                print(f"{int(it[3]):>12}", end="")
             elif i == 3:
                 print(f"{it[4]:>12}", end="")
             elif i == 4:
-                print(f"{it[5]:>12.4f}", end="")
+                print(f"{it[5]:>12.2f}", end="")
             elif i == 5:
                 print(f"{it[6]:>12}", end="")
             elif i == 6:
