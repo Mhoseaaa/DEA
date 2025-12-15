@@ -911,10 +911,8 @@ def main_menu():
 PILIH MATERI:
 
   8.  Quantifying User Research         [08_Quantifying_User_Research2.pdf]
-  9.  Sample Size & T-Score             [09_Sample_Size.pdf, 09_t-score.pdf]
+  9.  Sample Size                       [09_Sample_Size.pdf]
   10. Performance Based Metrics         [10_Performance_Based_Metrics.pdf]
-  11. Issues Based Metrics              [11_Issues_Based_Behavioral...pdf]
-  12. Self-Reported & Comparative       [12_Self_Reported_Metrics...pdf]
 
   0.  Keluar
 """)
@@ -1548,148 +1546,7 @@ def run_materi_10():
             except Exception as e: print(f"Error: {e}")
             input("\n[Enter untuk lanjut...]")
 
-# ==============================================================================
-#                    MATERI 11: ISSUES BASED METRICS
-# ==============================================================================
 
-def materi_11_menu():
-    print_header("MATERI 11: ISSUES BASED METRICS", "11_Issues_Based_Behavioral...pdf")
-    print("""
-  1. Problem Discovery Rate
-  2. Severity Rating
-  3. ROI Calculator
-  4. Unique Problems per User
-
-  0. Kembali
-""")
-    return input("Pilihan: ")
-
-def problem_discovery_rate():
-    print_header("Problem Discovery Rate", "Materi 11")
-    print_formula("P(discovery) = 1 - (1-p)^n", "Issues PDF")
-    p = float(input("Prob per user (p): "))
-    n = int(input("Number of users: "))
-    P = 1 - (1-p)**n
-    print(f"\n=== HASIL ===\nDiscovery Rate: {P:.4f} ({P*100:.1f}%)")
-
-def severity_rating_calc():
-    print_header("Severity Rating", "Materi 11")
-    print("Frequency (1-4): "); f = int(input())
-    print("Impact (1-4): "); i = int(input())
-    print("Persistence (1-4): "); p = int(input())
-    sev = (f+i+p)/3
-    print(f"\n=== HASIL ===\nSeverity: {sev:.2f}\nPriority: {'Low' if sev<2 else 'Medium' if sev<3 else 'High'}")
-
-def roi_calc():
-    print_header("ROI Calculator", "Materi 11")
-    print_formula("ROI = (Benefits - Costs) / Costs × 100%", "Issues PDF")
-    b = float(input("Benefits ($): "))
-    c = float(input("Costs ($): "))
-    print(f"\n=== HASIL ===\nROI: {((b-c)/c)*100:.1f}%")
-
-def unique_problems():
-    print_header("Unique Problems per User", "Materi 11")
-    total = int(input("Total unique problems found: "))
-    n = int(input("Number of users: "))
-    print(f"\n=== HASIL ===\nAvg problems/user: {total/n:.2f}")
-
-def run_materi_11():
-    opts = {"1": problem_discovery_rate, "2": severity_rating_calc, "3": roi_calc, "4": unique_problems}
-    while True:
-        c = materi_11_menu()
-        if c == "0": break
-        if c in opts:
-            try: opts[c]()
-            except Exception as e: print(f"Error: {e}")
-            input("\n[Enter untuk lanjut...]")
-
-# ==============================================================================
-#                    MATERI 12: SELF-REPORTED & COMPARATIVE
-# ==============================================================================
-
-def materi_12_menu():
-    print_header("MATERI 12: SELF-REPORTED & COMPARATIVE", "12_Self_Reported_Metrics...pdf")
-    print("""
-SELF-REPORTED:
-  1. SUS Score
-  2. NPS Score
-  3. SEQ Score
-  4. UMUX-LITE
-
-COMPARATIVE:
-  5. A/B Test (Proportions)
-  6. Cohen's d Effect Size
-
-  0. Kembali
-""")
-    return input("Pilihan: ")
-
-def sus_calc():
-    print_header("SUS Score", "Materi 12")
-    print_formula("SUS = ((Σodd-5) + (25-Σeven)) × 2.5", "Self-Reported PDF")
-    print("Masukkan 10 skor (1-5):")
-    scores = [int(input(f"Q{i+1}: ")) for i in range(10)]
-    adj = [(s-1) if i%2==0 else (5-s) for i,s in enumerate(scores)]
-    sus = sum(adj) * 2.5
-    grade = "A" if sus>=80 else "B" if sus>=68 else "C" if sus>=51 else "F"
-    print(f"\n=== HASIL ===\nSUS Score: {sus:.1f}\nGrade: {grade}")
-
-def nps_calc():
-    print_header("NPS Score", "Materi 12")
-    print_formula("NPS = %Promoters - %Detractors", "Self-Reported PDF")
-    p = int(input("Promoters (9-10): "))
-    pa = int(input("Passives (7-8): "))
-    d = int(input("Detractors (0-6): "))
-    total = p + pa + d
-    nps = ((p - d) / total) * 100
-    print(f"\n=== HASIL ===\nNPS: {nps:.1f}")
-
-def seq_calc():
-    print_header("SEQ Score", "Materi 12")
-    print("SEQ scores (1-7, pisah koma):")
-    scores = [float(x.strip()) for x in input().split(",")]
-    mean = sum(scores)/len(scores)
-    print(f"\n=== HASIL ===\nMean SEQ: {mean:.2f}\nBenchmark: ≥5.5 adalah baik")
-
-def umux_calc():
-    print_header("UMUX-LITE", "Materi 12")
-    q1 = float(input("Q1 capabilities (1-7): "))
-    q2 = float(input("Q2 easy to use (1-7): "))
-    umux = ((q1 + q2 - 2) / 12) * 100
-    print(f"\n=== HASIL ===\nUMUX-LITE: {umux:.1f}")
-
-def ab_proportions():
-    print_header("A/B Test (Proportions)", "Materi 12")
-    print_formula("Z = (p1-p2) / SE", "Comparative PDF")
-    x1, n1 = int(input("A successes: ")), int(input("A total: "))
-    x2, n2 = int(input("B successes: ")), int(input("B total: "))
-    p1, p2 = x1/n1, x2/n2
-    p_pool = (x1+x2)/(n1+n2)
-    se = math.sqrt(p_pool*(1-p_pool)*(1/n1+1/n2))
-    z = (p1-p2)/se
-    p_val = 2*(1-stats.norm.cdf(abs(z)))
-    print(f"\n=== HASIL ===\np1: {p1:.4f}, p2: {p2:.4f}\nZ: {z:.4f}\nP-value: {p_val:.4f}\nSignifikan: {'Ya' if p_val<0.05 else 'Tidak'}")
-
-def cohens_d_calc():
-    print_header("Cohen's d Effect Size", "Materi 12")
-    print_formula("d = (M1-M2) / SD_pooled", "Comparative PDF")
-    m1, m2 = float(input("Mean 1: ")), float(input("Mean 2: "))
-    s1, s2 = float(input("SD 1: ")), float(input("SD 2: "))
-    n1, n2 = int(input("n1: ")), int(input("n2: "))
-    sp = math.sqrt(((n1-1)*s1**2 + (n2-1)*s2**2)/(n1+n2-2))
-    d = (m1-m2)/sp
-    size = "Small" if abs(d)<0.5 else "Medium" if abs(d)<0.8 else "Large"
-    print(f"\n=== HASIL ===\nCohen's d: {d:.4f}\nEffect Size: {size}")
-
-def run_materi_12():
-    opts = {"1": sus_calc, "2": nps_calc, "3": seq_calc, "4": umux_calc, "5": ab_proportions, "6": cohens_d_calc}
-    while True:
-        c = materi_12_menu()
-        if c == "0": break
-        if c in opts:
-            try: opts[c]()
-            except Exception as e: print(f"Error: {e}")
-            input("\n[Enter untuk lanjut...]")
 
 # ==============================================================================
 #                                   MAIN
@@ -1707,9 +1564,8 @@ def main():
         elif choice == "8": run_materi_8()
         elif choice == "9": run_materi_9()
         elif choice == "10": run_materi_10()
-        elif choice == "11": run_materi_11()
-        elif choice == "12": run_materi_12()
         else: print("Pilihan tidak valid!")
 
 if __name__ == "__main__":
     main()
+
